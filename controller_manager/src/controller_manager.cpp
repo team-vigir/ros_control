@@ -460,6 +460,131 @@ bool ControllerManager::switchController(const std::vector<std::string>& start_c
 
 
 
+bool ControllerManager::switchControllerRealtime(const std::vector<std::string>& start_controllers,
+                                                 const std::vector<std::string>& stop_controllers,
+                                                 const ros::Time& time,
+                                                 int strictness = controller_manager_msgs::SwitchController::Request::BEST_EFFORT)
+{
+
+  // Define start/stop list for exclusive use in the realtime thread
+  std::vector<controller_interface::ControllerBase*> start_request_realtime, stop_request_realtime;
+
+  // @todo - remove these Debug prints from realtime loop
+  ROS_INFO("switching controllers:");
+  for (unsigned int i=0; i<start_controllers.size(); i++)
+    ROS_INFO(" - starting controller %s", start_controllers[i].c_str());
+  for (unsigned int i=0; i<stop_controllers.size(); i++)
+    ROS_INFO(" - stopping controller %s", stop_controllers[i].c_str());
+
+  // lock controllers
+  boost::recursive_mutex::scoped_lock guard(controllers_lock_);
+
+  controller_interface::ControllerBase* ct;
+  // list all controllers to stop
+  for (unsigned int i=0; i<stop_controllers.size(); i++)
+  {
+    ct = getControllerByName(stop_controllers[i]);
+    if (ct == NULL){
+      if (strictness ==  controller_manager_msgs::SwitchController::Request::STRICT){
+        ROS_ERROR("Could not stop controller with name %s because no controller with this name exists",
+                  stop_controllers[i].c_str());
+        stop_request_realtime.clear();
+        return false;
+      }
+      else{
+        ROS_INFO("Could not stop controller with name %s because no controller with this name exists",
+                  stop_controllers[i].c_str());
+      }
+    }
+    else{
+      ROS_INFO("Found controller %s that needs to be stopped in list of controllers",
+                stop_controllers[i].c_str());
+      stop_request_realtime.push_back(ct);
+    }
+  }
+  ROS_INFO("Stop request vector has size %i", (int)stop_request_realtime.size());
+
+  // list all controllers to start
+  for (unsigned int i=0; i<start_controllers.size(); i++)
+  {
+    ct = getControllerByName(start_controllers[i]);
+    if (ct == NULL){
+      if (strictness ==  controller_manager_msgs::SwitchController::Request::STRICT){
+        ROS_ERROR("Could not start controller with name %s because no controller with this name exists",
+                  start_controllers[i].c_str());
+        stop_request_realtime.clear();
+        start_request_realtime.clear();
+        return false;
+      }
+      else{
+        ROS_INFO("Could not start controller with name %s because no controller with this name exists",
+                  start_controllers[i].c_str());
+      }
+    }
+    else{
+      ROS_INFO("Found controller %s that needs to be started in list of controllers",
+                start_controllers[i].c_str());
+      start_request_realtime.push_back(ct);
+    }
+  }
+  ROS_INFO("Start request vector has size %i", (int)start_request_realtime.size());
+
+  // Do the resource management checking
+  std::list<hardware_interface::ControllerInfo> info_list;
+  std::vector<ControllerSpec> &controllers = controllers_lists_[current_controllers_list_];
+  for (size_t i = 0; i < controllers.size(); ++i)
+  {
+    bool in_stop_list  = false;
+
+    for(size_t j = 0; j < stop_request_realtime.size(); j++)
+      in_stop_list = in_stop_list || (stop_request_realtime[j] == controllers[i].c.get());
+
+    bool in_start_list = false;
+    for(size_t j = 0; j < start_request_realtime.size(); j++)
+      in_start_list = in_start_list || (start_request_realtime[j] == controllers[i].c.get());
+
+    bool add_to_list = controllers[i].c->isRunning();
+    if (in_stop_list)
+      add_to_list = false;
+    if (in_start_list)
+      add_to_list = true;
+
+    if (add_to_list)
+      info_list.push_back(controllers[i].info);
+  }
+
+  bool in_conflict = robot_hw_->checkForConflict(info_list);
+  if (in_conflict)
+  {
+    ROS_ERROR("Could not switch controllers, due to resource conflict");
+    stop_request_realtime.clear();
+    start_request_realtime.clear();
+    return false;
+  }
+
+  // start the atomic controller switching
+  switch_strictness_ = strictness;
+  please_switch_ = true;
+
+  // there are controllers to start/stop at this time in realtime loop
+  {
+    // stop controllers
+    for (unsigned int i=0; i<stop_request_realtime.size(); i++)
+      if (!stop_request_realtime[i]->stopRequest(time))
+        ROS_FATAL("Failed to stop controller in realtime loop. This should never happen.");
+
+    // start controllers
+    for (unsigned int i=0; i<start_request_realtime.size(); i++)
+      if (!start_request_realtime[i]->startRequest(time))
+        ROS_FATAL("Failed to start controller in realtime loop. This should never happen.");
+
+  }
+
+  ROS_INFO("Successfully switched controllers");
+  return true;
+}
+
+
 
 
 bool ControllerManager::reloadControllerLibrariesSrv(

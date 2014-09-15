@@ -142,6 +142,24 @@ public:
                         const std::vector<std::string>& stop_controllers,
                         const int strictness);
 
+  /** \brief Switch multiple controllers simultaneously from within the realtime loop.
+   *
+   * WARNING: This function should only be called from within the main realtime update loop
+   *
+   * \param start_controllers A vector of controller names to be started
+   * \param stop_controllers A vector of controller names to be stopped
+   * \param time The current time
+   * \param strictness How important it is that the requested controllers are
+   * started and stopped.  The levels are defined in the
+   * controller_manager_msgs/SwitchControllers service as either \c BEST_EFFORT
+   * or \c STRICT.  \c BEST_EFFORT means that \ref switchController can still
+   * succeed if a non-existent controller is requested to be stopped or started.
+   */
+  bool switchControllerRealtime(const std::vector<std::string>& start_controllers,
+                        const std::vector<std::string>& stop_controllers,
+                        const ros::Time& time,
+                        const int strictness);
+
   /** \brief Get a controller by name.
    *
    * \param name The name of a controller
