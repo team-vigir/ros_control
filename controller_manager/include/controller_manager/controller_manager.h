@@ -184,6 +184,13 @@ public:
   /*\}*/
 
 
+  /** \brief Get list of controllers that are currently running in the realtime thread */
+  void getRunningControllersListRealTime(std::vector<std::string>& running_list);
+
+
+  /** \brief Get list of all currently loaded controllers in the realtime thread */
+  void getControllerNamesRealtime(std::vector<std::string> &v);
+
 private:
   void getControllerNames(std::vector<std::string> &v);
 

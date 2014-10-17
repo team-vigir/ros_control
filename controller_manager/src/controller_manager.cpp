@@ -133,6 +133,28 @@ void ControllerManager::getControllerNames(std::vector<std::string> &names)
   }
 }
 
+void ControllerManager::getControllerNamesRealtime(std::vector<std::string> &names)
+{
+  names.clear();
+  std::vector<ControllerSpec> &controllers = controllers_lists_[used_by_realtime_];
+  for (size_t i = 0; i < controllers.size(); ++i)
+  {
+    names.push_back(controllers[i].info.name);
+  }
+}
+
+void ControllerManager::getRunningControllersListRealTime(std::vector<std::string> &names)
+{
+  names.clear();
+  std::vector<ControllerSpec> &controllers = controllers_lists_[used_by_realtime_];
+  for (size_t i = 0; i < controllers.size(); ++i)
+  {
+      if (controllers[i].c->isRunning())
+      {
+        names.push_back(controllers[i].info.name);
+      }
+  }
+}
 
 bool ControllerManager::loadController(const std::string& name)
 {
