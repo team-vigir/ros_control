@@ -207,7 +207,7 @@ bool ControllerManager::loadController(const std::string& name)
   std::string type;
   if (c_nh.getParam("type", type))
   {
-    ROS_DEBUG("Constructing controller '%s' of type '%s'", name.c_str(), type.c_str());
+    ROS_INFO("Constructing controller '%s' of type '%s'", name.c_str(), type.c_str());
     try
     {
       // Trying loading the controller using all of our controller loaders. Exit once we've found the first valid loaded controller
