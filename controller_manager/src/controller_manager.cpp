@@ -491,12 +491,12 @@ bool ControllerManager::switchControllerRealtime(const std::vector<std::string>&
   // Define start/stop list for exclusive use in the realtime thread
   std::vector<controller_interface::ControllerBase*> start_request_realtime, stop_request_realtime;
 
-  // @todo - remove these Debug prints from realtime loop
-  ROS_INFO("switching controllers:");
-  for (unsigned int i=0; i<start_controllers.size(); i++)
-    ROS_INFO(" - starting controller %s", start_controllers[i].c_str());
-  for (unsigned int i=0; i<stop_controllers.size(); i++)
-    ROS_INFO(" - stopping controller %s", stop_controllers[i].c_str());
+//  // @todo - remove these Debug prints from realtime loop
+//  ROS_INFO("switching controllers:");
+//  for (unsigned int i=0; i<start_controllers.size(); i++)
+//    ROS_INFO(" - starting controller %s", start_controllers[i].c_str());
+//  for (unsigned int i=0; i<stop_controllers.size(); i++)
+//    ROS_INFO(" - stopping controller %s", stop_controllers[i].c_str());
 
   // lock controllers
   boost::recursive_mutex::scoped_lock guard(controllers_lock_);
@@ -519,8 +519,7 @@ bool ControllerManager::switchControllerRealtime(const std::vector<std::string>&
       }
     }
     else{
-      ROS_INFO("Found controller %s that needs to be stopped in list of controllers",
-                stop_controllers[i].c_str());
+      //ROS_INFO("Found controller %s that needs to be stopped in list of controllers", stop_controllers[i].c_str());
       stop_request_realtime.push_back(ct);
     }
   }
@@ -544,12 +543,11 @@ bool ControllerManager::switchControllerRealtime(const std::vector<std::string>&
       }
     }
     else{
-      ROS_INFO("Found controller %s that needs to be started in list of controllers",
-                start_controllers[i].c_str());
+      //ROS_INFO("Found controller %s that needs to be started in list of controllers", start_controllers[i].c_str());
       start_request_realtime.push_back(ct);
     }
   }
-  ROS_INFO("Start request vector has size %i", (int)start_request_realtime.size());
+  //ROS_INFO("Start request vector has size %i", (int)start_request_realtime.size());
 
   // Do the resource management checking
   std::list<hardware_interface::ControllerInfo> info_list;
@@ -602,7 +600,7 @@ bool ControllerManager::switchControllerRealtime(const std::vector<std::string>&
 
   }
 
-  ROS_INFO("Successfully switched controllers");
+  //ROS_INFO("Successfully switched controllers");
   return true;
 }
 
